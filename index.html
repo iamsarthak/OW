@@ -9,8 +9,8 @@
     <meta name="description" content="IndiaOCR offers cutting-edge OCR technology for PAN cards, Aadhaar cards, and Indian passports. Get 500 free API calls. Transform your document processing today!">
     <meta name="keywords" content="OCR, PAN card OCR, Aadhaar card OCR, Indian passport OCR, document processing, data extraction, KYC automation">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-firestore.js"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-46LE8D1JM0"></script>
     <script>
@@ -398,56 +398,94 @@
         </div>
     </footer>
 
-    <script>
-    // Initialize Firebase (replace with your own config)
-    const firebaseConfig = {
-        apiKey: "AIzaSyDFJJjC6mDwAJ3WRx56NieImuadkYNGT8U",
-        authDomain: "ocrd-a76ce.firebaseapp.com",
-        projectId: "ocrd-a76ce",
-        storageBucket: "ocrd-a76ce.appspot.com",
-        messagingSenderId: "455044161391",
-        appId: "1:455044161391:web:b010509c3de7f2ddea529a",
-        measurementId: "G-LM87G9JMGG"
-    };
+    <script type="module">
+  // Import necessary Firebase functions
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.8/firebase-app.js';
+  import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.6.8/firebase-firestore.js';
+  import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/9.6.8/firebase-analytics.js';
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFJJjC6mDwAJ3WRx56NieImuadkYNGT8U",
+    authDomain: "ocrd-a76ce.firebaseapp.com",
+    projectId: "ocrd-a76ce",
+    storageBucket: "ocrd-a76ce.appspot.com",
+    messagingSenderId: "455044161391",
+    appId: "1:455044161391:web:b010509c3de7f2ddea529a",
+    measurementId: "G-LM87G9JMGG"
+  };
 
-    // List of personal email domains to block
-    const blockedDomains = ['gmail.com', 'yahoo.com', 'icloud.com', 'rediff.com', 'hotmail.com', 'outlook.com'];
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
 
-    document.getElementById('emailForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const emailDomain = email.split('@')[1]; // Extract domain part of the email
+  // Initialize Firestore
+  const db = getFirestore(app);
 
-        // Simple validation to check if it's a valid email format
-        if (!email.includes('@') || !emailDomain.includes('.')) {
-            alert('Please enter a valid work email address.');
-            return;
-        }
+  // Initialize Analytics
+  const analytics = getAnalytics(app);
 
-        // Check if the domain is in the blocked list
-        if (blockedDomains.includes(emailDomain.toLowerCase())) {
-            alert('Please enter a valid work email address. Personal email addresses (e.g., Gmail, Yahoo) are not allowed.');
-            return;
-        }
-
-        // If valid, store email in Firebase
-        db.collection("emails").add({
-            email: email,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        })
-        .then(() => {
-            document.getElementById('message').style.display = 'block';
-            document.getElementById('message').textContent = 'Thank you for your interest! Our team will contact you shortly with more information about your free trial.';
-            document.getElementById('email').value = ''; // Clear form
-        })
-        .catch((error) => {
-            console.error("Error adding document: ", error);
-            alert('An error occurred. Please try again.');
-        });
+  // Track Page Load (Page View Event)
+  window.addEventListener('load', function() {
+    logEvent(analytics, 'page_view', {
+      page_title: document.title,
+      page_location: window.location.href,
+      page_path: window.location.pathname
     });
+    console.log('Page view event logged');
+  });
+
+  // List of personal email domains to block
+  const blockedDomains = ['gmail.com', 'yahoo.com', 'icloud.com', 'rediff.com', 'hotmail.com', 'outlook.com'];
+
+  // CTA button click event listener (e.g., "Start Your Free Trial")
+  document.querySelector('.cta-button').addEventListener('click', function() {
+    // Log event in Firebase Analytics (log button click)
+    logEvent(analytics, 'cta_button_click', {
+      button_name: 'Start Your Free Trial',
+      page_location: window.location.href
+    });
+    console.log('CTA button clicked and event logged');
+  });
+
+  // Form submission handler
+  document.getElementById('emailForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const emailDomain = email.split('@')[1]; // Extract domain part of the email
+
+    // Simple validation to check if it's a valid email format
+    if (!email.includes('@') || !emailDomain.includes('.')) {
+      alert('Please enter a valid work email address.');
+      return;
+    }
+
+    // Check if the domain is in the blocked list
+    if (blockedDomains.includes(emailDomain.toLowerCase())) {
+      alert('Please enter a valid work email address. Personal email addresses (e.g., Gmail, Yahoo) are not allowed.');
+      return;
+    }
+
+    try {
+      // Add email to Firestore
+      await addDoc(collection(db, "emails"), {
+        email: email,
+        timestamp: serverTimestamp()
+      });
+
+      // Log event in Firebase Analytics (log email submission)
+      logEvent(analytics, 'email_submission', {
+        email_domain: emailDomain
+      });
+
+      // Show success message and clear form
+      document.getElementById('message').style.display = 'block';
+      document.getElementById('message').textContent = 'Thank you for your interest! Our team will contact you shortly with more information about your free trial.';
+      document.getElementById('email').value = ''; // Clear form
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      alert('An error occurred. Please try again.');
+    }
+  });
 </script>
 </body>
 </html>
